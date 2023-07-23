@@ -6,7 +6,7 @@ exports.isoToDisplay = (iso) => {
   }
   
   if (iso.indexOf('T') < 0) {
-    return iso;
+    iso = `${iso}T00:00:00`;
   }
   
   const options = {
@@ -21,6 +21,18 @@ exports.isoToDisplay = (iso) => {
   const date = new Date(iso);
   
   return date.toLocaleString('en-US', options);
+}
+
+exports.isoToEpoch = (iso) => {
+  if (!iso) {
+    return null;
+  }
+  
+  if (iso.indexOf('T') < 0) {
+    iso = `${iso}T00:00:00`;
+  }
+  
+  return Date.parse(iso) / 1000;
 }
 
 exports.postToWebhook = async (body) => {

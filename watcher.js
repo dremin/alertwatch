@@ -24,8 +24,8 @@ const fetchAlertData = async () => {
   // Update the database
   for (alertIndex in alerts) {
     const alert = alerts[alertIndex];
-    const start = alert.start ? Date.parse(alert.start) / 1000 : null;
-    const end = alert.end ? Date.parse(alert.end) / 1000 : null;
+    const start = utils.isoToEpoch(alert.start);
+    const end = utils.isoToEpoch(alert.end);
     
     if (alert.start) {
       alert.start = utils.isoToDisplay(alert.start);
