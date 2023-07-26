@@ -88,7 +88,7 @@ exports.postChangeNotification = async (alert) => {
       title: alert.description,
       url: alert.url,
       author: {
-        name: `${alert.title} - Updated`,
+        name: `Updated: ${alert.title}`,
       },
       fields: [
         {
@@ -137,7 +137,7 @@ exports.postEndNotification = async (alert) => {
       title: `Ended: ${alert.description}`,
       url: alert.url,
       author: {
-        name: alert.title,
+        name: `${alert.title} - Ended`,
       },
     }],
   };

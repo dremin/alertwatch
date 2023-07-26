@@ -3,10 +3,26 @@ const db = require('./db');
 const utils = require('./utils');
 
 let watchInterval;
+let updateInFlight = false;
 
 exports.init = () => {
-  watchInterval = setInterval(fetchAlertData, process.env.INTERVAL_MIN * 60 * 1000);
-  fetchAlertData();
+  watchInterval = setInterval(performFetch, process.env.INTERVAL_MIN * 60 * 1000);
+  performFetch();
+}
+
+const performFetch = async () => {
+  if (updateInFlight) {
+    return;
+  }
+  updateInFlight = true;
+  
+  try {
+    await fetchAlertData();
+  } catch (error) {
+    console.error('Unable to fetch alert data', error);
+  }
+  
+  updateInFlight = false;
 }
 
 const fetchAlertData = async () => {
@@ -48,11 +64,12 @@ const fetchAlertData = async () => {
     } else if (!skipNotifications) {
       // alert didn't change
       // send notification if we are within one update interval of the start or end date
-      if (start && now > start && now < start + (process.env.INTERVAL_MIN * 60)) {
+      // disabled, seemed a bit chatty
+      /*if (start && now > start && now < start + (process.env.INTERVAL_MIN * 60)) {
         await utils.postStartNotification(alert);
       } else if (end && now < end && now > end - (process.env.INTERVAL_MIN * 60)) {
         await utils.postEndNotification(alert);
-      }
+      }*/
     }
   }
   
@@ -64,8 +81,8 @@ const fetchAlertData = async () => {
     if (!currentAlert) {
       db.query('delete from alerts where id = ?', true, [ alert.id ]);
       
-      // send notification if there is no end date, or if we are within one update interval of the end date
-      if (!skipNotifications && (!alert.end || now < alert.end && now > alert.end + (process.env.INTERVAL_MIN * 60))) {
+      // send notification if there was no end date
+      if (!skipNotifications && !alert.end) {
         await utils.postEndNotification(alert);
       }
     }
@@ -95,7 +112,8 @@ const alertsRequest = async () => {
   try {
     const response = await axios.get(`https://lapi.transitchicago.com/api/1.0/alerts.aspx`, {
       params: {
-        outputType: 'JSON'
+        outputType: 'JSON',
+        accessibility: false,
       }
     });
     
