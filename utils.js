@@ -54,93 +54,89 @@ exports.postToWebhook = async (body) => {
   await new Promise(r => setTimeout(r, 2000));
 }
 
-exports.postNewAlertNotification = async (alert) => {
-  const body = {
-    embeds: [{
-      color: parseInt(alert.color, 16),
-      title: alert.description,
-      url: alert.url,
-      author: {
-        name: alert.title,
+exports.buildNewAlertNotification = (alert) => {
+  return {
+    color: parseInt(alert.color, 16),
+    title: alert.description,
+    url: alert.url,
+    author: {
+      name: alert.title,
+    },
+    fields: [
+      {
+        name: "Start time",
+        value: alert.start ? alert.start : 'TBD',
+        inline: true,
       },
-      fields: [
-        {
-          name: "Start time",
-          value: alert.start ? alert.start : 'TBD',
-          inline: true,
-        },
-        {
-          name: "End time",
-          value: alert.end ? alert.end : 'TBD',
-          inline: true,
-        },
-      ],
-    }],
+      {
+        name: "End time",
+        value: alert.end ? alert.end : 'TBD',
+        inline: true,
+      },
+    ],
   };
-  
-  await exports.postToWebhook(body);
 }
 
-exports.postChangeNotification = async (alert) => {
-  const body = {
-    embeds: [{
-      color: parseInt(alert.color, 16),
-      title: alert.description,
-      url: alert.url,
-      author: {
-        name: `Updated: ${alert.title}`,
+exports.buildChangeNotification = (alert) => {
+  return {
+    color: parseInt(alert.color, 16),
+    title: alert.description,
+    url: alert.url,
+    author: {
+      name: `Updated: ${alert.title}`,
+    },
+    fields: [
+      {
+        name: "Start time",
+        value: alert.start ? alert.start : 'TBD',
+        inline: true,
       },
-      fields: [
-        {
-          name: "Start time",
-          value: alert.start ? alert.start : 'TBD',
-          inline: true,
-        },
-        {
-          name: "End time",
-          value: alert.end ? alert.end : 'TBD',
-          inline: true,
-        },
-      ],
-    }],
+      {
+        name: "End time",
+        value: alert.end ? alert.end : 'TBD',
+        inline: true,
+      },
+    ],
   };
-  
-  await exports.postToWebhook(body);
 }
 
-exports.postStartNotification = async (alert) => {
-  const body = {
-    embeds: [{
-      color: parseInt(alert.color, 16),
-      title: `Starting now: ${alert.description}`,
-      url: alert.url,
-      author: {
-        name: alert.title,
+exports.buildStartNotification = (alert) => {
+  return {
+    color: parseInt(alert.color, 16),
+    title: `Starting now: ${alert.description}`,
+    url: alert.url,
+    author: {
+      name: alert.title,
+    },
+    fields: alert.end ? [
+      {
+        name: "End time",
+        value: alert.end,
+        inline: true,
       },
-      fields: alert.end ? [
-        {
-          name: "End time",
-          value: alert.end,
-          inline: true,
-        },
-      ] : null,
-    }],
+    ] : null,
   };
-  
-  await exports.postToWebhook(body);
 }
 
-exports.postEndNotification = async (alert) => {
-  const body = {
-    embeds: [{
-      color: parseInt(alert.color, 16),
-      title: `Ended: ${alert.description}`,
-      url: alert.url,
-      author: {
-        name: `${alert.title} - Ended`,
-      },
-    }],
+exports.buildEndNotification = (alert) => {
+  return {
+    color: parseInt(alert.color, 16),
+    title: `Ended: ${alert.description}`,
+    url: alert.url,
+    author: {
+      name: `${alert.title} - Ended`,
+    },
   };
-  
-  await exports.postToWebhook(body);
+}
+
+exports.postNotifications = async (alerts) => {
+  // Chunk up to ten embeds per post.
+  for (let i = 0; i < alerts.length; i += 10) {
+    const alertsChunk = alerts.slice(i, i + 10);
+    const body = {
+      embeds: [ ...alertsChunk ],
+    };
+    
+    await exports.postToWebhook(body);
+  }
 }

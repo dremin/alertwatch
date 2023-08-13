@@ -31,6 +31,7 @@ const fetchAlertData = async () => {
   const existingAlerts = db.query('select id, start, end, title, description, color, url from alerts');
   const now = db.getDbDateTime();
   const skipNotifications = existingAlerts.length < 1;
+  let alertNotifications = [];
   
   if (!alerts) {
     console.log(`Failed to update alert data at ${new Date()}`);
@@ -56,19 +57,19 @@ const fetchAlertData = async () => {
     if (!existingAlert) {
       // missing row -> new alert!
       db.query('insert into alerts (id, start, end, title, description, color, url) values (?, ?, ?, ?, ?, ?, ?)', true, [ alert.id, start, end, alert.title, alert.description, alert.color, alert.url ]);
-      if (!skipNotifications) await utils.postNewAlertNotification(alert);
+      alertNotifications.push(utils.buildNewAlertNotification(alert));
     } else if (existingAlert.start != start || existingAlert.end != end || existingAlert.title != alert.title || existingAlert.description != alert.description) {
       // update existing alert
       const updateResult = db.query('update alerts set start = ?, end = ?, title = ?, description = ?, color = ?, url = ? where id = ?', true, [ start, end, alert.title, alert.description, alert.color, alert.url, alert.id ]);
-      if (!skipNotifications) await utils.postChangeNotification(alert);
-    } else if (!skipNotifications) {
+      alertNotifications.push(utils.buildChangeNotification(alert));
+    } else {
       // alert didn't change
       // send notification if we are within one update interval of the start or end date
       // disabled, seemed a bit chatty
       /*if (start && now > start && now < start + (process.env.INTERVAL_MIN * 60)) {
-        await utils.postStartNotification(alert);
+        alertNotifications.push(utils.buildStartNotification(alert));
       } else if (end && now < end && now > end - (process.env.INTERVAL_MIN * 60)) {
-        await utils.postEndNotification(alert);
+        alertNotifications.push(utils.buildEndNotification(alert));
       }*/
     }
   }
@@ -82,10 +83,15 @@ const fetchAlertData = async () => {
       db.query('delete from alerts where id = ?', true, [ alert.id ]);
       
       // send notification if there was no end date
-      if (!skipNotifications && !alert.end) {
-        await utils.postEndNotification(alert);
+      if (!alert.end) {
+        // disabled, seemed a bit chatty
+        // alertNotifications.push(utils.buildEndNotification(alert));
       }
     }
+  }
+  
+  if (!skipNotifications && alertNotifications.length > 0) {
+    await utils.postNotifications(alertNotifications);
   }
   
   console.log(`Updated alert data at ${new Date()}`);
